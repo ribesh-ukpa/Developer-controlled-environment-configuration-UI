@@ -1,0 +1,8 @@
+# Go build output
+/dev-env-config
+*.exe
+
+# Never commit real credentials
+secret.yaml
+deploy/secret.yaml
+*.local.yaml

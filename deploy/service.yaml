@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-env-config
+  namespace: dev
+spec:
+  selector: { app: dev-env-config }
+  ports:
+    - port: 80
+      targetPort: 8080
+  # ClusterIP only. Reach it via `kubectl port-forward svc/dev-env-config 8080:80`
+  # or front it with your own Ingress (add TLS there). Deliberately NOT exposed
+  # as LoadBalancer/NodePort — keep this internal.
+  type: ClusterIP

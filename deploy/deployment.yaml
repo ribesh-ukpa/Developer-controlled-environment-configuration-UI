@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-env-config
+  namespace: dev
+  labels: { app: dev-env-config }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: dev-env-config }
+  template:
+    metadata:
+      labels: { app: dev-env-config }
+    spec:
+      serviceAccountName: dev-env-config
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: REPLACE_WITH_YOUR_REGISTRY/dev-env-config:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_PORT
+              value: "8080"
+            # Comma-separated allow-list. MUST match the RoleBindings in rbac.yaml.
+            - name: ALLOWED_NAMESPACES
+              value: "dev"
+            - name: ALLOW_SECRETS
+              value: "true"
+            - name: BASIC_AUTH_USER
+              valueFrom:
+                secretKeyRef: { name: dev-env-config-auth, key: username }
+            - name: BASIC_AUTH_PASS
+              valueFrom:
+                secretKeyRef: { name: dev-env-config-auth, key: password }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: "10m", memory: "32Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 2
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 5

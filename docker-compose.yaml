@@ -1,0 +1,27 @@
+# Local test harness — runs the app in a container against your CURRENT
+# kubeconfig context. NOT for production (prod runs as a Pod via deploy/).
+#
+#   docker compose up --build
+#   open http://localhost:8080   (user: developer / pass: test-password)
+#
+# Networking note: if your kubeconfig points the API server at 127.0.0.1
+# (Docker Desktop / kind / minikube), the container can't reach host loopback.
+# Docker Desktop: rewrite the server to https://host.docker.internal:6443.
+# Linux:          uncomment `network_mode: host` below and drop the ports map.
+services:
+  dev-env-config:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      BASIC_AUTH_USER: developer
+      BASIC_AUTH_PASS: test-password
+      ALLOWED_NAMESPACES: dev
+      ALLOW_SECRETS: "true"
+      KUBECONFIG: /kube/config
+    volumes:
+      # Read-only mount of your kubeconfig.
+      - "${HOME}/.kube/config:/kube/config:ro"
+    # extra_hosts:            # uncomment on Docker Desktop if needed
+    #   - "host.docker.internal:host-gateway"
+    # network_mode: host      # Linux + local cluster: use this, remove `ports`

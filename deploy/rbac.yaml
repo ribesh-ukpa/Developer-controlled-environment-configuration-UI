@@ -1,0 +1,36 @@
+# RBAC is the real security boundary for this tool. The app can only ever do
+# what these rules permit, regardless of any bug in the application code.
+#
+# Scope: get/list/update/patch on configmaps & secrets — NO create, NO delete,
+# and bound ONLY into the dev namespace(s) you list below.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dev-env-config
+  namespace: dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dev-env-config-editor
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "update", "patch"]
+---
+# One RoleBinding PER allowed namespace. The binding is namespaced, so this
+# ClusterRole only grants power inside "dev". Copy this block for each extra
+# dev namespace and keep ALLOWED_NAMESPACES (in the Deployment) in sync.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-env-config-editor
+  namespace: dev
+subjects:
+  - kind: ServiceAccount
+    name: dev-env-config
+    namespace: dev
+roleRef:
+  kind: ClusterRole
+  name: dev-env-config-editor
+  apiGroup: rbac.authorization.k8s.io

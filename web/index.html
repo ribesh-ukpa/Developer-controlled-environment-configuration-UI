@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dev Env Config</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Dev Env Config</h1>
+    <div class="who">
+      <label>Your name
+        <input id="devName" placeholder="e.g. Ribesh" autocomplete="off" />
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="field">
+        <label for="ns">Namespace</label>
+        <select id="ns"></select>
+      </div>
+      <div class="field">
+        <label for="kind">Type</label>
+        <select id="kind">
+          <option value="configmaps">ConfigMaps</option>
+          <option value="secrets">Secrets</option>
+        </select>
+      </div>
+      <ul id="list" class="list"></ul>
+    </aside>
+
+    <section id="editor" class="editor hidden">
+      <div class="editor-head">
+        <h2 id="editorTitle"></h2>
+        <label class="reveal hidden" id="revealWrap">
+          <input type="checkbox" id="reveal" /> reveal values
+        </label>
+      </div>
+      <table class="kv">
+        <thead><tr><th>Key</th><th>Value</th><th></th></tr></thead>
+        <tbody id="kvBody"></tbody>
+      </table>
+      <button id="addRow" class="ghost">+ add key</button>
+      <div class="actions">
+        <button id="save" class="primary">Review &amp; save…</button>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Diff confirmation dialog -->
+  <dialog id="confirm">
+    <h3>Confirm changes</h3>
+    <p id="confirmTarget" class="muted"></p>
+    <pre id="diff" class="diff"></pre>
+    <div class="actions">
+      <button id="cancel" class="ghost">Cancel</button>
+      <button id="apply" class="primary">Apply to cluster</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
