@@ -80,11 +80,17 @@ func (a *App) handleGet(w http.ResponseWriter, r *http.Request) {
 			a.k8sErr(w, err)
 			return
 		}
-		data = cm.Data
+		for k, v := range cm.Data {
+			data[k] = v
+		}
 	case "secrets":
 		s, err := a.k8s.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			a.k8sErr(w, err)
+			return
+		}
+		if s.Type != corev1.SecretTypeOpaque {
+			writeErr(w, http.StatusForbidden, "only Opaque secrets are editable")
 			return
 		}
 		for k, v := range s.Data {
@@ -144,6 +150,10 @@ func (a *App) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			a.k8sErr(w, err)
 			return
 		}
+		if s.Type != corev1.SecretTypeOpaque {
+			writeErr(w, http.StatusForbidden, "only Opaque secrets are editable")
+			return
+		}
 		old := map[string]string{}
 		for k, v := range s.Data {
 			old[k] = string(v)
@@ -201,19 +211,19 @@ func (a *App) k8sErr(w http.ResponseWriter, err error) {
 }
 
 // diffKeys returns the set of keys that were added, removed or changed.
-func diffKeys(old, new map[string]string) []string {
+func diffKeys(current, updated map[string]string) []string {
 	seen := map[string]bool{}
 	var out []string
-	for k, v := range new {
-		if ov, ok := old[k]; !ok || ov != v {
+	for k, v := range updated {
+		if ov, ok := current[k]; !ok || ov != v {
 			if !seen[k] {
 				out = append(out, k)
 				seen[k] = true
 			}
 		}
 	}
-	for k := range old {
-		if _, ok := new[k]; !ok && !seen[k] {
+	for k := range current {
+		if _, ok := updated[k]; !ok && !seen[k] {
 			out = append(out, k)
 			seen[k] = true
 		}
