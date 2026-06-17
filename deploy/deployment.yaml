@@ -13,13 +13,16 @@ spec:
       labels: { app: dev-env-config }
     spec:
       serviceAccountName: dev-env-config
+      # Pull secret for the private GHCR image (see README "Push to GHCR").
+      imagePullSecrets:
+        - name: ghcr-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
-          image: REPLACE_WITH_YOUR_REGISTRY/dev-env-config:latest
+          image: ghcr.io/ribesh-ukpa/developer-controlled-environment-configuration:latest
           ports:
             - containerPort: 8080
           env:

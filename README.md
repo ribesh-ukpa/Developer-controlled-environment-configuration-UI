@@ -86,13 +86,52 @@ Zero-friction alternative (no Docker), if you have Go installed:
 BASIC_AUTH_PASS=test-password ALLOWED_NAMESPACES=dev go run .
 ```
 
+## Push the image to GHCR
+
+The deployment pulls from GitHub Container Registry
+(`ghcr.io/ribesh-ukpa/developer-controlled-environment-configuration`).
+
+> 🔐 Use a GitHub **Personal Access Token (classic)** with the `write:packages`
+> scope as the registry password. **Never** paste a real token into a shell that
+> records history, a file, or a chat — pass it via `--password-stdin` and treat
+> any leaked token as compromised (revoke + reissue immediately).
+
+```sh
+# 1. Log in to GHCR (token piped from an env var, not typed inline)
+export GHCR_PAT=<your-token>          # do NOT commit or echo this
+echo "$GHCR_PAT" | docker login ghcr.io -u ribesh-ukpa --password-stdin
+
+# 2. Build, tag and push
+docker build -t developer-controlled-environment-configuration-ui-dev-env-config:latest .
+docker tag developer-controlled-environment-configuration-ui-dev-env-config:latest \
+  ghcr.io/ribesh-ukpa/developer-controlled-environment-configuration:latest
+docker push ghcr.io/ribesh-ukpa/developer-controlled-environment-configuration:latest
+```
+
+If the package is private, the cluster needs a pull secret (already referenced
+as `ghcr-secret` in `deploy/deployment.yaml`):
+
+```sh
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=ribesh-ukpa \
+  --docker-password="$GHCR_PAT" \
+  --docker-email=your@email.com \
+  --namespace=dev
+```
+
+> The pull secret is wired into the Deployment declaratively. If you ever add it
+> to a Deployment that lacks it, you can patch instead of re-applying:
+> ```sh
+> kubectl patch deployment dev-env-config -n dev \
+>   -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ghcr-secret"}]}}}}'
+> ```
+
 ## Deploy
 
 ```sh
-# 1. Build & push the image
-docker build -t YOUR_REGISTRY/dev-env-config:latest .
-docker push YOUR_REGISTRY/dev-env-config:latest
-#    then set that image in deploy/deployment.yaml
+# 1. Build & push the image to GHCR — see "Push the image to GHCR" above,
+#    and create the ghcr-secret pull secret if the package is private.
 
 # 2. Create the basic-auth credential (do NOT commit it)
 kubectl -n dev create secret generic dev-env-config-auth \
@@ -105,8 +144,12 @@ kubectl apply -f deploy/deployment.yaml
 kubectl apply -f deploy/service.yaml
 
 # 4. Reach it
-kubectl -n dev port-forward svc/dev-env-config 8080:80
-# open http://localhost:8080
+# --address 0.0.0.0 is required when the cluster runs on a remote VM so that
+# the port-forward binds on all interfaces, not just loopback. Without it the
+# port is only reachable from inside the VM (localhost) and browsers on other
+# machines will time out.
+kubectl -n dev port-forward --address 0.0.0.0 svc/dev-env-config 8080:80
+# open http://<VM-IP>:8080  (or http://localhost:8080 if running locally)
 ```
 
 ### Adding another dev namespace
